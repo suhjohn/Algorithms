@@ -1,13 +1,17 @@
 import edu.princeton.cs.algs4.StdRandom;
+import edu.princeton.cs.algs4.StdStats;
 
 public class PercolationStats {
-    private double[] percThresholds;
-    private int T;
-    private double mean;
-    private double stddev;
+    private final double[] percThresholds;
+    private final int T;
+    private Double mean;
+    private Double stddev;
+
     // perform trials independent experiments on an n-by-n grid
     // throw a java.lang.IllegalArgumentException if either n ≤ 0 or trials ≤ 0.
     public PercolationStats(int n, int trials) {
+        if (n < 0 || trials < 0) throw new IllegalArgumentException();
+
         this.T = trials;
         this.percThresholds = new double[trials];
         if (n <= 0 || trials <= 0) throw new IllegalArgumentException();
@@ -20,36 +24,32 @@ public class PercolationStats {
             }
             this.percThresholds[trial] = perc.numberOfOpenSites() / Math.pow(n, 2);
         }
-        this.mean = this.mean();
-        this.stddev = this.stddev();
     }
 
     // sample mean of percolation threshold
     public double mean() {
-        double sum = 0.0;
-        for (double threshold : this.percThresholds) {
-            sum += threshold;
+        if (this.mean == null){
+            this.mean = StdStats.mean(this.percThresholds);
         }
-        return sum / this.T;
+        return this.mean;
     }
 
     // sample standard deviation of percolation threshold
     public double stddev() {
-        double sum = 0.0;
-        for (double threshold : this.percThresholds) {
-            sum += Math.pow(threshold - this.mean, 2);
+        if (this.stddev == null){
+            this.stddev = StdStats.stddev(this.percThresholds);
         }
-        return Math.sqrt(sum / (this.T - 1));
+        return this.stddev;
     }
 
     // low  endpoint of 95% confidence interval
     public double confidenceLo() {
-        return (this.mean - (1.96*this.stddev) / Math.sqrt(this.T));
+        return (this.mean() - (1.96 * this.stddev()) / Math.sqrt(this.T));
     }
 
     // high endpoint of 95% confidence interval
     public double confidenceHi() {
-        return (this.mean + (1.96*this.stddev) / Math.sqrt(this.T));
+        return (this.mean() + (1.96 * this.stddev()) / Math.sqrt(this.T));
 
     }
 

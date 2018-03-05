@@ -4,20 +4,17 @@
  *---------------------------------------------------------*/
 
 
-import edu.princeton.cs.algs4.StdIn;
 import edu.princeton.cs.algs4.WeightedQuickUnionUF;
-
-import java.util.Arrays;
 
 
 public class Percolation {
-    private int n; // n by n grid n
+    private final int n; // n by n grid n
     private int countOpen = 0; // number of open squares
     private WeightedQuickUnionUF grid; // main grid for percolation representation
-    private WeightedQuickUnionUF bottomSiteGrid; // backwash check grid
+    private final WeightedQuickUnionUF bottomSiteGrid; // backwash check grid
     private boolean[] boolGrid; // open true / false check grid
-    private int virtualTopSite; // virtual topsite that connects all the sites on the top row
-    private int virtualBottomSite; // virtual bottom site that connects all the sites on the bottom row
+    private final int virtualTopSite; // virtual topsite that connects all the sites on the top row
+    private final int virtualBottomSite; // virtual bottom site that connects all the sites on the bottom row
 
     public Percolation(int n) {
         if (n <= 0) throw new IllegalArgumentException();
@@ -67,7 +64,7 @@ public class Percolation {
 
     /**
      * Opens the site for the given row and col.
-     * <p>
+     *
      * Throws IllegalArgumentException if it is not a valid site.
      */
     public void open(int row, int col) {
