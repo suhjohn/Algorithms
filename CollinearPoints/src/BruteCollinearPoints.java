@@ -16,35 +16,60 @@ public class BruteCollinearPoints {
 
     // finds all line segments containing 4 points
     public BruteCollinearPoints(Point[] points) {
+        validatePoints(points);
+        Arrays.sort(points);
+
+        ArrayList<Point[]> lineSegmentEndpointArr = new ArrayList<>();
         this.lineSegmentArr = new ArrayList<>();
-        for (int i = 0; i < points.length; i++) {
+        for (int i = 0; i < points.length - 3; i++) {
             Point a = points[i];
-            for (int j = 0; j < points.length; j++) {
+            for (int j = i + 1; j < points.length - 2; j++) {
                 Point b = points[j];
                 double a_to_b = a.slopeTo(b);
-                // Edge case: if point is itself
-                if (a_to_b == Double.NEGATIVE_INFINITY || i == j) continue;
-                for (int k = 0; k < points.length; k++) {
+                for (int k = j + 1; k < points.length - 1; k++) {
                     Point c = points[k];
                     double a_to_c = a.slopeTo(c);
-                    if (a_to_c == Double.NEGATIVE_INFINITY || a_to_b != a_to_c || i == k || j == k) continue;
-                    for (int l = 0; l < points.length; l++) {
+                    if (a_to_b != a_to_c) continue; // small optimization
+                    for (int l = k + 1; l < points.length; l++) {
                         Point d = points[l];
                         double a_to_d = a.slopeTo(d);
-                        if (i == l || j == l || k == l) continue;
-                        if (a_to_d != Double.NEGATIVE_INFINITY && (a_to_b == a_to_d && a_to_c == a_to_d)) {
-                            Point[] currPoints = {a, b, c, d};
-                            Arrays.sort(currPoints);
-                            LineSegment newLineSegment = new LineSegment(currPoints[0], currPoints[3]);
-                            boolean exist = false;
-                            for (LineSegment lineSegment : this.lineSegmentArr) {
-                                if (newLineSegment.toString().equals(lineSegment.toString())) exist = true;
-                            }
-                            if (!exist) this.lineSegmentArr.add(newLineSegment);
-//                            if (!this.lineSegmentArr.contains(newLineSegment)) this.lineSegmentArr.add(newLineSegment);
+                        if (a_to_b == a_to_d) {
+                            LineSegment newLineSegment = new LineSegment(a, d);
+                            this.lineSegmentArr.add(newLineSegment);
+
+//                            boolean duplicate = hasDuplicate(lineSegmentEndpointArr, a, d);
+//                            if (!duplicate) {
+//                                Point[] newLineSegmentEndpoints = {a, d};
+//                                LineSegment newLineSegment = new LineSegment(a, d);
+//                                lineSegmentEndpointArr.add(newLineSegmentEndpoints);
+//                                this.lineSegmentArr.add(newLineSegment);
+//                            }
                         }
                     }
                 }
+            }
+        }
+
+    }
+
+    private boolean hasDuplicate(ArrayList<Point[]> lineSegmentEndpointArr, Point p, Point q) {
+        for (Point[] endpoints : lineSegmentEndpointArr) {
+            if (endpoints[0].compareTo(p) == 0 && endpoints[1].compareTo(q) == 0) return true;
+        }
+        return false;
+    }
+
+
+    private void validatePoints(Point[] points) {
+        // check if point is null
+        // check if null
+        // check if same point
+        if (points == null) throw new IllegalArgumentException();
+        for (int i = 0; i < points.length; i++) {
+            if (points[i] == null) throw new IllegalArgumentException();
+            Point curr = points[i];
+            for (int j = i + 1; j < points.length; j++) {
+                if (points[j].toString().equals(curr.toString())) throw new IllegalArgumentException();
             }
         }
     }

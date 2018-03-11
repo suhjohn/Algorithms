@@ -24,57 +24,81 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 public class FastCollinearPoints {
-    private ArrayList<LineSegment> lineSegmentArr;
+    private ArrayList<LineSegment> lineSegmentList = new ArrayList<>();
 
-    // finds all line segments containing 4 or more points
+
+    //     finds all line segments containing 4 or more points
     public FastCollinearPoints(Point[] points) {
-        Point[] pointsCopy = points;
-        this.lineSegmentArr = new ArrayList<>();
+        validatePoints(points);
+        Arrays.sort(points);
+
+        Point[] pointsCopy = points.clone();
         for (int i = 0; i < points.length; i++) {
-            Point p = points[i];
+            Arrays.sort(pointsCopy);
+            Point p = pointsCopy[i];
             Arrays.sort(pointsCopy, p.slopeOrder());
 
-            double[] slopes = new double[pointsCopy.length];
-            for (int z = 0; z < pointsCopy.length; z++){
-                slopes[z] = p.slopeTo(pointsCopy[z]);
-            }
-
+            // Add Line Segment Points //
             Double prevSlope = null;
             Double currSlope = null;
             int count = 0;
+
+
             for (int j = 0; j < points.length; j++) {
                 Point q = pointsCopy[j];
                 currSlope = p.slopeTo(q);
-                if (currSlope.equals(Double.NEGATIVE_INFINITY)) continue;
-                if (!currSlope.equals(prevSlope)) {
-                    if (count >= 3) {
-                        // Get max point from p
-                        Arrays.sort(pointsCopy, j - count, j);
-                        Point max_q = pointsCopy[j-1];
-                        // create line segment
-                        LineSegment lineSeg = new LineSegment(p, max_q);
-                        // 1. Duplicates 2. Sub Segments handling
-                        this.lineSegmentArr.add(lineSeg);
+
+                // If the slope changed or we're at the last point, check if we've seen more than 3.
+                if (prevSlope != null && (!prevSlope.equals(currSlope))) {
+                    if (count >= 3 && p.compareTo(pointsCopy[j - count]) < 0) {
+                        lineSegmentList.add(new LineSegment(p, pointsCopy[j - 1]));
                     }
                     count = 0;
                 }
                 count++;
                 prevSlope = currSlope;
             }
+
+            // Edge case for when loop with the last set of elements having the same slope
+            if (count >= 3 & p.compareTo(pointsCopy[pointsCopy.length - count]) < 0)
+                lineSegmentList.add(new LineSegment(p, pointsCopy[pointsCopy.length - 1]));
         }
 
     }
 
+    /**
+     * validates the points from the constructor.
+     * Checks if the argument points itself isn ull, if any point in points is null, or duplicates exist.
+     *
+     * @param points array of points to validate
+     */
+    private void validatePoints(Point[] points) {
+        if (points == null) throw new IllegalArgumentException(); // check if null
+        // check if point is null
+        // check if null
+        // check if same point
+        Arrays.sort(points);
+        for (int i = 0; i < points.length - 1; i++) {
+            if (points[i] == null) throw new IllegalArgumentException();
+            if (points[i].compareTo(points[i + 1]) == 0) {
+
+                throw new IllegalArgumentException();
+            }
+        }
+    }
+
+
     // the number of line segments
     public int numberOfSegments() {
-        return this.lineSegmentArr.size();
+        return this.lineSegmentList.size();
     }
 
     // the line segments
     public LineSegment[] segments() {
         LineSegment[] lineSegments = new LineSegment[this.numberOfSegments()];
-        return this.lineSegmentArr.toArray(lineSegments);
+        return this.lineSegmentList.toArray(lineSegments);
     }
+
 
     public static void main(String[] args) {
 
@@ -105,6 +129,6 @@ public class FastCollinearPoints {
         }
         System.out.println(collinear.numberOfSegments());
         StdDraw.show();
-    }
 
+    }
 }
