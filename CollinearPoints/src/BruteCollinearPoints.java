@@ -69,7 +69,7 @@ public class BruteCollinearPoints {
             if (points[i] == null) throw new IllegalArgumentException();
             Point curr = points[i];
             for (int j = i + 1; j < points.length; j++) {
-                if (points[j].toString().equals(curr.toString())) throw new IllegalArgumentException();
+                if (points[j].compareTo(curr) == 0) throw new IllegalArgumentException();
             }
         }
     }

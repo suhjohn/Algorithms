@@ -29,10 +29,9 @@ public class FastCollinearPoints {
 
     //     finds all line segments containing 4 or more points
     public FastCollinearPoints(Point[] points) {
-        validatePoints(points);
-        Arrays.sort(points);
-
         Point[] pointsCopy = points.clone();
+        validatePoints(pointsCopy);
+
         for (int i = 0; i < points.length; i++) {
             Arrays.sort(pointsCopy);
             Point p = pointsCopy[i];
@@ -74,6 +73,7 @@ public class FastCollinearPoints {
      */
     private void validatePoints(Point[] points) {
         if (points == null) throw new IllegalArgumentException(); // check if null
+        if (points.length == 1 && points[0] == null) throw new IllegalArgumentException();
         // check if point is null
         // check if null
         // check if same point
