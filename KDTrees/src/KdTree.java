@@ -1,15 +1,14 @@
 import edu.princeton.cs.algs4.*;
 
 import java.util.ArrayList;
-import java.util.TreeSet;
 
 public class KdTree {
     private static class Node {
-        private Point2D p;      // the point
-        private RectHV rect;    // the axis-aligned rectangle corresponding to this node
+        private final Point2D p;      // the point
+        private final RectHV rect;    // the axis-aligned rectangle corresponding to this node
         private Node lb;        // the left/bottom subtree
         private Node rt;        // the right/top subtree
-        private boolean isVertical;
+        private final boolean isVertical;
 
         public Node(Point2D p, RectHV rect, Node lb, Node rt, boolean isVertical) {
             this.p = p;
@@ -80,12 +79,12 @@ public class KdTree {
     // does the set contain point p?
     public boolean contains(Point2D p) {
         if (p == null) throw new IllegalArgumentException("argument to contains() is null");
-        if (this.isEmpty()) return false;
-
-        if (p.compareTo(this.root.p) == 0) return true;
-        else return this.contains(this.root, p);
+        return !this.isEmpty() && p.compareTo(this.root.p) == 0 || this.contains(this.root, p);
     }
 
+    /**
+     * Recursive implementation of contains
+     */
     private boolean contains(Node node, Point2D p) {
         if (node.p.compareTo(p) == 0) return true;
 
@@ -143,6 +142,7 @@ public class KdTree {
         nodesToSearch.enqueue(this.root);
         while (!nodesToSearch.isEmpty()) {
             Node curr = nodesToSearch.dequeue();
+            if (curr == null) continue;
             if (curr.isVertical) {
                 if (rect.xmin() <= curr.p.x() && curr.p.x() <= rect.xmax()) {
                     nodesToSearch.enqueue(curr.lb);
@@ -161,9 +161,44 @@ public class KdTree {
     }
 
     // a nearest neighbor in the set to point p; null if the set is empty
-//    public Point2D nearest(Point2D p) {
-//
-//    }
+    public Point2D nearest(Point2D p) {
+        if (this.isEmpty()) return null;
+        Queue<Node> nodesToSearch = new Queue<>();
+
+        // Optimization for choosing closer side
+        if (p.x() < this.root.p.x()) nodesToSearch.enqueue(this.root.lb);
+        else nodesToSearch.enqueue(this.root.rt);
+
+        Node nearestNeighbor = this.findNearestNeighbor(nodesToSearch, p, this.root);
+        Double nearestDistance = nearestNeighbor.p.distanceSquaredTo(p);
+
+        if (p.x() < this.root.p.x()) {
+            if (this.canHaveNearerPoint(this.root.rt, p, nearestDistance)) nodesToSearch.enqueue(this.root.rt);
+        } else {
+            if (this.canHaveNearerPoint(this.root.lb, p, nearestDistance)) nodesToSearch.enqueue(this.root.lb);
+        }
+        return this.findNearestNeighbor(nodesToSearch, p, nearestNeighbor).p;
+    }
+
+    private Node findNearestNeighbor(Queue<Node> nodesToSearch, Point2D p, Node currNearestNeighbor) {
+        double currNearestDistance = currNearestNeighbor.p.distanceSquaredTo(p);
+        while (!nodesToSearch.isEmpty()) {
+            Node curr = nodesToSearch.dequeue();
+            double currDistance = curr.p.distanceSquaredTo(p);
+            // Update Nearest
+            if (currDistance < currNearestDistance) {
+                currNearestDistance = currDistance;
+                currNearestNeighbor = curr;
+            }
+            if (this.canHaveNearerPoint(curr.lb, p, currNearestDistance)) nodesToSearch.enqueue(curr.lb);
+            if (this.canHaveNearerPoint(curr.rt, p, currNearestDistance)) nodesToSearch.enqueue(curr.rt);
+        }
+        return currNearestNeighbor;
+    }
+
+    private boolean canHaveNearerPoint(Node node, Point2D p, Double currNearestDistance) {
+        return node != null && node.rect.distanceSquaredTo(p) < currNearestDistance;
+    }
 
     // unit testing of the methods (optional)
     public static void main(String[] args) {
