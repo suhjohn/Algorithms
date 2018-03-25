@@ -5,11 +5,10 @@ import java.util.ArrayList;
 import java.util.TreeSet;
 
 public class PointSET {
-    private TreeSet<Point2D> pointSet;
+    private TreeSet<Point2D> pointSet = new TreeSet<>();
 
     // construct an empty set of points
     public PointSET() {
-        this.pointSet = new TreeSet<>();
     }
 
     // is the set empty?
@@ -61,12 +60,12 @@ public class PointSET {
 
         // Calculate the first element's distance to p
         Point2D minPoint = this.pointSet.first();
-        double minDistance = minPoint.distanceTo(p);
+        double minDistance = minPoint.distanceSquaredTo(p);
 
         // Iterate over the elements in the SET
         // Compare the current distance and update min
         for (Point2D currPoint : this.pointSet) {
-            double currDistance = currPoint.distanceTo(p);
+            double currDistance = currPoint.distanceSquaredTo(p);
             if (currDistance < minDistance) {
                 minPoint = currPoint;
                 minDistance = currDistance;

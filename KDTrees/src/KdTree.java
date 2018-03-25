@@ -1,4 +1,10 @@
-import edu.princeton.cs.algs4.*;
+
+import edu.princeton.cs.algs4.Point2D;
+import edu.princeton.cs.algs4.Queue;
+import edu.princeton.cs.algs4.RectHV;
+import edu.princeton.cs.algs4.StdDraw;
+import edu.princeton.cs.algs4.In;
+
 
 import java.util.ArrayList;
 
@@ -41,8 +47,13 @@ public class KdTree {
         if (this.root == null) {
             this.root = new Node(p, new RectHV(0.0, 0.0, 1.0, 1.0), null, null,
                     true);
-        } else insert(this.root, this.root.rect, this.root.isVertical, p);
-        this.size++;
+            this.size++;
+        } else {
+            if (!this.contains(p)) {
+                insert(this.root, this.root.rect, this.root.isVertical, p);
+                this.size++;
+            }
+        }
     }
 
     private Node insert(Node node, RectHV rect, boolean isVertical, Point2D p) {
@@ -82,10 +93,11 @@ public class KdTree {
         return !this.isEmpty() && p.compareTo(this.root.p) == 0 || this.contains(this.root, p);
     }
 
-    /**
+    /****
      * Recursive implementation of contains
      */
     private boolean contains(Node node, Point2D p) {
+        if (node == null) return false;
         if (node.p.compareTo(p) == 0) return true;
 
         int comp;
@@ -109,19 +121,14 @@ public class KdTree {
                 StdDraw.setPenRadius();
                 StdDraw.setPenColor(StdDraw.RED);
                 StdDraw.line(node.p.x(), node.rect.ymin(), node.p.x(), node.rect.ymax());
-                System.out.println(node.p.toString());
-                System.out.println(String.format("%f , %f + %f , %f", node.p.x(), node.rect.ymin(), node.p.x(), node.rect.ymax()));
             } else {
                 StdDraw.setPenRadius();
                 StdDraw.setPenColor(StdDraw.BLUE);
                 StdDraw.line(node.rect.xmin(), node.p.y(), node.rect.xmax(), node.p.y());
-                System.out.println(node.p.toString());
-                System.out.println(String.format("%f , %f + %f , %f", node.rect.xmin(), node.p.y(), node.rect.xmax(), node.p.y()));
             }
             StdDraw.setPenRadius(0.01);
             StdDraw.setPenColor(StdDraw.BLACK);
             node.p.draw();
-            System.out.println(node.isVertical);
 
             queue.enqueue(node.lb);
             queue.enqueue(node.rt);
@@ -144,40 +151,91 @@ public class KdTree {
             Node curr = nodesToSearch.dequeue();
             if (curr == null) continue;
             if (curr.isVertical) {
-                if (rect.xmin() <= curr.p.x() && curr.p.x() <= rect.xmax()) {
+                if (rect.xmin() <= curr.p.x() && curr.p.x() <= rect.xmax() &&
+                        (rect.ymin() <= curr.rect.ymax() || rect.ymax() >= curr.rect.ymin())) {
                     nodesToSearch.enqueue(curr.lb);
                     nodesToSearch.enqueue(curr.rt);
                     if (rect.contains(curr.p)) range.add(curr.p);
+                }
+                if (curr.rect.intersects(rect)) {
+                    if (curr.p.x() < rect.xmin()) nodesToSearch.enqueue(curr.rt);
+                    else if (curr.p.x() > rect.xmax()) nodesToSearch.enqueue(curr.lb);
                 }
             } else {
-                if (rect.ymin() <= curr.p.y() && curr.p.y() <= rect.ymax()) {
+                if (rect.ymin() <= curr.p.y() && curr.p.y() <= rect.ymax() &&
+                        (rect.xmin() <= curr.rect.xmax() || rect.xmax() >= curr.rect.xmin())) {
                     nodesToSearch.enqueue(curr.lb);
                     nodesToSearch.enqueue(curr.rt);
                     if (rect.contains(curr.p)) range.add(curr.p);
                 }
+                if (curr.rect.intersects(rect)) {
+                    if (curr.p.y() < rect.ymin()) nodesToSearch.enqueue(curr.rt);
+                    else if (curr.p.y() > rect.ymax()) nodesToSearch.enqueue(curr.lb);
+                }
             }
+
         }
         return range;
     }
 
-    // a nearest neighbor in the set to point p; null if the set is empty
+    /***
+     *  Start at the root and recursively search in both subtrees using the following pruning rule:
+     *
+     *  if the closest point discovered so far is closer than the distance between the query point and the rectangle corresponding to a node,
+     *  there is no need to explore that node (or its subtrees).
+     *  That is, search a node only only if it might contain a point that is closer than the best one found so far.
+     *
+     *  The effectiveness of the pruning rule depends on quickly finding a nearby point.
+     *  To do this, organize the recursive method so that
+     *  when there are two possible subtrees to go down,
+     *  you always choose the subtree that is on the same side of the splitting line as the query point as the first subtree to explore —
+     *      the closest point found while exploring the first subtree may enable pruning of the second subtree.
+     * */
     public Point2D nearest(Point2D p) {
         if (this.isEmpty()) return null;
-        Queue<Node> nodesToSearch = new Queue<>();
+        if (this.root == null) return null;
 
-        // Optimization for choosing closer side
-        if (p.x() < this.root.p.x()) nodesToSearch.enqueue(this.root.lb);
-        else nodesToSearch.enqueue(this.root.rt);
-
-        Node nearestNeighbor = this.findNearestNeighbor(nodesToSearch, p, this.root);
-        Double nearestDistance = nearestNeighbor.p.distanceSquaredTo(p);
-
+        Node nearest;
         if (p.x() < this.root.p.x()) {
-            if (this.canHaveNearerPoint(this.root.rt, p, nearestDistance)) nodesToSearch.enqueue(this.root.rt);
+            nearest = this.nearest(p, this.root.lb, this.root, p.distanceSquaredTo(this.root.p));
+            return this.nearest(p, this.root.rt, nearest, p.distanceSquaredTo(nearest.p)).p;
         } else {
-            if (this.canHaveNearerPoint(this.root.lb, p, nearestDistance)) nodesToSearch.enqueue(this.root.lb);
+            nearest = this.nearest(p, this.root.rt, this.root, p.distanceSquaredTo(this.root.p));
+            return this.nearest(p, this.root.lb, nearest, p.distanceSquaredTo(nearest.p)).p;
         }
-        return this.findNearestNeighbor(nodesToSearch, p, nearestNeighbor).p;
+    }
+
+    private Node nearest(Point2D p, Node node, Node nearestNode, Double nearestDist) {
+        if (node == null || node.rect.distanceSquaredTo(p) > nearestDist) return nearestNode;
+        Double currDist = node.p.distanceSquaredTo(p);
+
+        if (currDist < nearestDist) {
+            nearestDist = currDist;
+            nearestNode = node;
+        }
+        // If the min distance from point to rectangle is smaller than nearest, then we should look for more.
+        // We will first look for the zone(x if vertical and y if horizontal) where the query p is, then the other zone.
+        // Otherwise, return the node.
+        int comp = this.compare(node, p);
+        if (comp > 0) {
+            nearestNode = this.nearest(p, node.lb, nearestNode, nearestDist);
+            nearestDist = nearestNode.p.distanceSquaredTo(p);
+            nearestNode = this.nearest(p, node.rt, nearestNode, nearestDist);
+        } else {
+            nearestNode = this.nearest(p, node.rt, nearestNode, nearestDist);
+            nearestDist = nearestNode.p.distanceSquaredTo(p);
+            nearestNode = this.nearest(p, node.lb, nearestNode, nearestDist);
+        }
+
+        return nearestNode;
+    }
+
+    private int compare(Node node, Point2D p) {
+        if (node.isVertical) {
+            return Double.compare(node.p.x(), p.x());
+        } else {
+            return Double.compare(node.p.y(), p.y());
+        }
     }
 
     private Node findNearestNeighbor(Queue<Node> nodesToSearch, Point2D p, Node currNearestNeighbor) {
