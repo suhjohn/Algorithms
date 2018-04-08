@@ -9,6 +9,9 @@ import edu.princeton.cs.algs4.In;
 import java.util.ArrayList;
 
 public class KdTree {
+    private Node root = null;
+    private int size = 0;
+
     private static class Node {
         private final Point2D p;      // the point
         private final RectHV rect;    // the axis-aligned rectangle corresponding to this node
@@ -24,9 +27,6 @@ public class KdTree {
             this.isVertical = isVertical;
         }
     }
-
-    private Node root = null;
-    private int size = 0;
 
     // construct an empty set of points
     public KdTree() {
@@ -44,44 +44,58 @@ public class KdTree {
 
     // add the point to the set (if it is not already in the set)
     public void insert(Point2D p) {
-        if (this.root == null) {
-            this.root = new Node(p, new RectHV(0.0, 0.0, 1.0, 1.0), null, null,
-                    true);
-            this.size++;
-        } else {
-            if (!this.contains(p)) {
-                insert(this.root, this.root.rect, this.root.isVertical, p);
-                this.size++;
-            }
-        }
+        if (p == null) return;
+        this.root = this.insert(this.root, null, true, p);
     }
 
-    private Node insert(Node node, RectHV rect, boolean isVertical, Point2D p) {
+    private RectHV getSubRect(Node parentNode, Point2D p) {
+        int comp;
+        double xmin = parentNode.rect.xmin();
+        double ymin = parentNode.rect.ymin();
+        double xmax = parentNode.rect.xmax();
+        double ymax = parentNode.rect.ymax();
+
+        if (parentNode.isVertical) {
+            comp = Double.compare(p.x(), parentNode.p.x());
+            if (comp < 0) xmax = parentNode.p.x();
+            else xmin = parentNode.p.x();
+            if (xmax < xmin) {
+                double temp = xmax;
+                xmax = xmin;
+                xmin = temp;
+            }
+        } else {
+            comp = Double.compare(p.y(), parentNode.p.y());
+            if (comp < 0) ymax = parentNode.p.y();
+            else ymin = parentNode.p.y();
+            if (ymax < ymin) {
+                double temp = ymax;
+                ymax = ymin;
+                ymin = temp;
+            }
+        }
+        return new RectHV(xmin, ymin, xmax, ymax);
+    }
+
+    private Node insert(Node node, Node parentNode, boolean isVertical, Point2D p) {
         if (node == null) {
-            return new Node(p, rect, null, null, isVertical);
+            this.size++;
+            RectHV subRect;
+            if (parentNode == null) subRect = new RectHV(0.0, 0.0, 1.0, 1.0);
+            else {
+                subRect = this.getSubRect(parentNode, p);
+            }
+            return new Node(p, subRect, null, null, isVertical);
+        }
+        if (node.p.compareTo(p) == 0) {
+            return node;
         }
         // For vertical lines, compare x to decide whether on the right side or left side.
         // For horizontal lines, compare y to decide whether on the top or bottom.
-        int comp;
-        RectHV subRect;
-        if (isVertical) {
-            comp = Double.compare(p.x(), node.p.x());
-            if (comp < 0) {
-                subRect = new RectHV(rect.xmin(), rect.ymin(), node.p.x(), rect.ymax());
-                node.lb = insert(node.lb, subRect, !node.isVertical, p);
-            } else {
-                subRect = new RectHV(node.p.x(), rect.ymin(), rect.xmax(), rect.ymax());
-                node.rt = insert(node.rt, subRect, !node.isVertical, p);
-            }
+        if (this.compare(node, p) < 0) {
+            node.lb = insert(node.lb, node, !node.isVertical, p);
         } else {
-            comp = Double.compare(p.y(), node.p.y());
-            if (comp < 0) {
-                subRect = new RectHV(rect.xmin(), rect.ymin(), rect.xmax(), node.p.y());
-                node.lb = insert(node.lb, subRect, !node.isVertical, p);
-            } else {
-                subRect = new RectHV(rect.xmin(), node.p.y(), rect.xmax(), rect.ymax());
-                node.rt = insert(node.rt, subRect, !node.isVertical, p);
-            }
+            node.rt = insert(node.rt, node, !node.isVertical, p);
         }
 
         return node;
@@ -100,9 +114,7 @@ public class KdTree {
         if (node == null) return false;
         if (node.p.compareTo(p) == 0) return true;
 
-        int comp;
-        if (node.isVertical) comp = Double.compare(p.x(), node.p.x());
-        else comp = Double.compare(p.y(), node.p.y());
+        int comp = this.compare(node, p);
 
         if (comp < 0) return contains(node.lb, p);
         else return contains(node.rt, p);
@@ -238,26 +250,6 @@ public class KdTree {
         }
     }
 
-    private Node findNearestNeighbor(Queue<Node> nodesToSearch, Point2D p, Node currNearestNeighbor) {
-        double currNearestDistance = currNearestNeighbor.p.distanceSquaredTo(p);
-        while (!nodesToSearch.isEmpty()) {
-            Node curr = nodesToSearch.dequeue();
-            double currDistance = curr.p.distanceSquaredTo(p);
-            // Update Nearest
-            if (currDistance < currNearestDistance) {
-                currNearestDistance = currDistance;
-                currNearestNeighbor = curr;
-            }
-            if (this.canHaveNearerPoint(curr.lb, p, currNearestDistance)) nodesToSearch.enqueue(curr.lb);
-            if (this.canHaveNearerPoint(curr.rt, p, currNearestDistance)) nodesToSearch.enqueue(curr.rt);
-        }
-        return currNearestNeighbor;
-    }
-
-    private boolean canHaveNearerPoint(Node node, Point2D p, Double currNearestDistance) {
-        return node != null && node.rect.distanceSquaredTo(p) < currNearestDistance;
-    }
-
     // unit testing of the methods (optional)
     public static void main(String[] args) {
         String filename = args[0];
@@ -271,6 +263,10 @@ public class KdTree {
         }
 
         kdtree.draw();
+
+        System.out.println(kdtree.size());
+        System.out.println(kdtree.contains(new Point2D(0.75, 0.40625)));
+
     }
 
 }
